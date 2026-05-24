@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -24,6 +24,7 @@
       <select id="lecture-filter"><option value="all">전체</option></select>
       <button class="control-button" id="random-button" type="button">랜덤 출제</button>
       <button class="control-button" id="wrong-only-button" type="button">오답만 다시 풀기</button>
+      <button class="control-button reset-button" id="reset-progress-button" type="button">풀이 기록 초기화</button>
     </section>
     <section class="quiz-card" aria-live="polite">
       <div class="question-meta" id="question-meta">문제를 불러오는 중입니다.</div>
@@ -51,7 +52,7 @@
 
     const STORAGE = { answers:'quizAnswers', progress:'quizProgress', incorrect:'incorrectQuestions' };
     const elements = {
-      lectureFilter: document.getElementById('lecture-filter'), randomButton: document.getElementById('random-button'), wrongOnlyButton: document.getElementById('wrong-only-button'), progress: document.getElementById('question-progress'), correctCount: document.getElementById('correct-count'), wrongCount: document.getElementById('wrong-count'), accuracyRate: document.getElementById('accuracy-rate'), questionMeta: document.getElementById('question-meta'), questionText: document.getElementById('question-text'), optionsList: document.getElementById('options-list'), explanationPanel: document.getElementById('explanation-panel'), correctExplanation: document.getElementById('correct-explanation'), wrongExplanation: document.getElementById('wrong-explanation'), prevButton: document.getElementById('prev-button'), nextButton: document.getElementById('next-button')
+      lectureFilter: document.getElementById('lecture-filter'), randomButton: document.getElementById('random-button'), wrongOnlyButton: document.getElementById('wrong-only-button'), resetProgressButton: document.getElementById('reset-progress-button'), progress: document.getElementById('question-progress'), correctCount: document.getElementById('correct-count'), wrongCount: document.getElementById('wrong-count'), accuracyRate: document.getElementById('accuracy-rate'), questionMeta: document.getElementById('question-meta'), questionText: document.getElementById('question-text'), optionsList: document.getElementById('options-list'), explanationPanel: document.getElementById('explanation-panel'), correctExplanation: document.getElementById('correct-explanation'), wrongExplanation: document.getElementById('wrong-explanation'), prevButton: document.getElementById('prev-button'), nextButton: document.getElementById('next-button')
     };
     let answers = JSON.parse(localStorage.getItem(STORAGE.answers) || '{}');
     let filteredQuestions = [...questions];
@@ -140,9 +141,19 @@
       render();
     }
     function applyFilter() { filteredQuestions = getBaseQuestions(); currentIndex = 0; render(); }
+    function resetProgress() {
+      if (!confirm('정말 초기화하시겠습니까?')) return;
+      ['quizAnswers', 'quizProgress', 'incorrectQuestions', 'solvedQuestions', 'answeredQuestions', 'completedQuestions', 'progress'].forEach(key => localStorage.removeItem(key));
+      answers = {};
+      wrongOnlyMode = false;
+      filteredQuestions = getBaseQuestions();
+      currentIndex = 0;
+      render();
+    }
     elements.lectureFilter.addEventListener('change', applyFilter);
     elements.randomButton.addEventListener('click', () => { filteredQuestions = [...getBaseQuestions()].sort(() => Math.random() - 0.5); currentIndex = 0; render(); });
     elements.wrongOnlyButton.addEventListener('click', () => { wrongOnlyMode = !wrongOnlyMode; applyFilter(); });
+    elements.resetProgressButton.addEventListener('click', resetProgress);
     elements.prevButton.addEventListener('click', () => { currentIndex = Math.max(0, currentIndex - 1); render(); });
     elements.nextButton.addEventListener('click', () => { currentIndex = Math.min(filteredQuestions.length - 1, currentIndex + 1); render(); });
     saveAnswers(); applyFilter();
