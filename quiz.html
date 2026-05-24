@@ -1,0 +1,151 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>문제풀이 | 사회복지행정론 기말고사 대비</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" type="button" aria-label="다크모드 전환">🌙</button>
+  <main class="site-shell quiz-shell">
+    <header class="quiz-topbar">
+      <a class="back-link" href="index.html">← 홈</a>
+      <div><p class="eyebrow">Quiz Practice</p><h1>문제풀이</h1></div>
+    </header>
+    <section class="quiz-dashboard" aria-label="퀴즈 현황">
+      <div class="stat-card"><span>진행률</span><strong id="question-progress">0 / 0</strong></div>
+      <div class="stat-card"><span>맞힌 개수</span><strong id="correct-count">0</strong></div>
+      <div class="stat-card"><span>틀린 개수</span><strong id="wrong-count">0</strong></div>
+      <div class="stat-card"><span>정답률</span><strong id="accuracy-rate">0%</strong></div>
+    </section>
+    <section class="quiz-controls" aria-label="문제 설정">
+      <label class="filter-label" for="lecture-filter">강의별 필터</label>
+      <select id="lecture-filter"><option value="all">전체</option></select>
+      <button class="control-button" id="random-button" type="button">랜덤 출제</button>
+      <button class="control-button" id="wrong-only-button" type="button">오답만 다시 풀기</button>
+    </section>
+    <section class="quiz-card" aria-live="polite">
+      <div class="question-meta" id="question-meta">문제를 불러오는 중입니다.</div>
+      <h2 id="question-text"></h2>
+      <div class="options-list" id="options-list"></div>
+      <section class="explanation-panel" id="explanation-panel" hidden>
+        <div><strong>정답 해설</strong><p id="correct-explanation"></p></div>
+        <div><strong>오답 해설</strong><p id="wrong-explanation"></p></div>
+      </section>
+    </section>
+    <nav class="quiz-nav" aria-label="문제 이동">
+      <button class="control-button" id="prev-button" type="button">이전</button>
+      <button class="control-button control-button--primary" id="next-button" type="button">다음</button>
+    </nav>
+  </main>
+  <script src="data.js"></script>
+  <script>
+    function applyTheme() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.dataset.theme = theme;
+      document.getElementById('theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+    document.getElementById('theme-toggle').addEventListener('click', () => { localStorage.setItem('theme', document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'); applyTheme(); });
+    applyTheme();
+
+    const STORAGE = { answers:'quizAnswers', progress:'quizProgress', incorrect:'incorrectQuestions' };
+    const elements = {
+      lectureFilter: document.getElementById('lecture-filter'), randomButton: document.getElementById('random-button'), wrongOnlyButton: document.getElementById('wrong-only-button'), progress: document.getElementById('question-progress'), correctCount: document.getElementById('correct-count'), wrongCount: document.getElementById('wrong-count'), accuracyRate: document.getElementById('accuracy-rate'), questionMeta: document.getElementById('question-meta'), questionText: document.getElementById('question-text'), optionsList: document.getElementById('options-list'), explanationPanel: document.getElementById('explanation-panel'), correctExplanation: document.getElementById('correct-explanation'), wrongExplanation: document.getElementById('wrong-explanation'), prevButton: document.getElementById('prev-button'), nextButton: document.getElementById('next-button')
+    };
+    let answers = JSON.parse(localStorage.getItem(STORAGE.answers) || '{}');
+    let filteredQuestions = [...questions];
+    let currentIndex = 0;
+    let wrongOnlyMode = false;
+
+    for (let i = 1; i <= 15; i += 1) {
+      const option = document.createElement('option');
+      option.value = String(i);
+      option.textContent = `${i}강`;
+      elements.lectureFilter.append(option);
+    }
+    const initialLecture = Number(new URLSearchParams(location.search).get('lecture'));
+    if (initialLecture >= 1 && initialLecture <= 15) elements.lectureFilter.value = String(initialLecture);
+
+    function saveAnswers() {
+      const entries = Object.entries(answers);
+      const solved = entries.map(([id]) => Number(id));
+      const wrong = entries.filter(([, value]) => !value.isCorrect).map(([id]) => Number(id));
+      localStorage.setItem(STORAGE.answers, JSON.stringify(answers));
+      localStorage.setItem(STORAGE.incorrect, JSON.stringify(wrong));
+      localStorage.setItem(STORAGE.progress, JSON.stringify({ solvedQuestions: solved, solvedCount: solved.length, totalQuestions: questions.length }));
+    }
+    function getBaseQuestions() {
+      const selected = elements.lectureFilter.value;
+      const base = selected === 'all' ? questions : questions.filter(q => q.lecture === Number(selected));
+      return wrongOnlyMode ? base.filter(q => answers[q.id] && !answers[q.id].isCorrect) : base;
+    }
+    function updateStats() {
+      const values = Object.values(answers);
+      const correct = values.filter(a => a.isCorrect).length;
+      const wrong = values.filter(a => !a.isCorrect).length;
+      const answered = correct + wrong;
+      elements.correctCount.textContent = correct;
+      elements.wrongCount.textContent = wrong;
+      elements.accuracyRate.textContent = (answered ? Math.round(correct / answered * 100) : 0) + '%';
+    }
+    function renderEmpty() {
+      elements.progress.textContent = `0 / ${filteredQuestions.length}`;
+      elements.questionMeta.textContent = wrongOnlyMode ? '현재 조건에 해당하는 오답 문제가 없습니다.' : '현재 조건에 해당하는 문제가 없습니다.';
+      elements.questionText.textContent = '';
+      elements.optionsList.innerHTML = '';
+      elements.explanationPanel.hidden = true;
+      elements.prevButton.disabled = true;
+      elements.nextButton.disabled = true;
+      updateStats();
+    }
+    function render() {
+      if (filteredQuestions.length === 0) { renderEmpty(); return; }
+      const question = filteredQuestions[currentIndex];
+      const saved = answers[question.id];
+      elements.progress.textContent = `${currentIndex + 1} / ${filteredQuestions.length}`;
+      elements.questionMeta.textContent = `${question.lecture}강 · 문제 ID ${question.id}`;
+      elements.questionText.textContent = question.question;
+      elements.optionsList.innerHTML = '';
+      question.options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'option-button';
+        button.textContent = option;
+        button.addEventListener('click', () => selectAnswer(question, index));
+        if (saved) {
+          button.disabled = true;
+          if (index === question.answer) button.classList.add('is-correct');
+          if (index === saved.selected && index !== question.answer) button.classList.add('is-wrong');
+        }
+        elements.optionsList.append(button);
+      });
+      if (saved) {
+        elements.explanationPanel.hidden = false;
+        elements.correctExplanation.textContent = question.explanation;
+        elements.wrongExplanation.textContent = question.wrongExplanation;
+      } else {
+        elements.explanationPanel.hidden = true;
+      }
+      elements.prevButton.disabled = currentIndex === 0;
+      elements.nextButton.disabled = currentIndex === filteredQuestions.length - 1;
+      elements.wrongOnlyButton.classList.toggle('is-active', wrongOnlyMode);
+      updateStats();
+    }
+    function selectAnswer(question, selected) {
+      answers[question.id] = { selected, isCorrect: selected === question.answer, answeredAt: new Date().toISOString() };
+      saveAnswers();
+      if (wrongOnlyMode && selected === question.answer) filteredQuestions = getBaseQuestions();
+      if (currentIndex >= filteredQuestions.length) currentIndex = Math.max(0, filteredQuestions.length - 1);
+      render();
+    }
+    function applyFilter() { filteredQuestions = getBaseQuestions(); currentIndex = 0; render(); }
+    elements.lectureFilter.addEventListener('change', applyFilter);
+    elements.randomButton.addEventListener('click', () => { filteredQuestions = [...getBaseQuestions()].sort(() => Math.random() - 0.5); currentIndex = 0; render(); });
+    elements.wrongOnlyButton.addEventListener('click', () => { wrongOnlyMode = !wrongOnlyMode; applyFilter(); });
+    elements.prevButton.addEventListener('click', () => { currentIndex = Math.max(0, currentIndex - 1); render(); });
+    elements.nextButton.addEventListener('click', () => { currentIndex = Math.min(filteredQuestions.length - 1, currentIndex + 1); render(); });
+    saveAnswers(); applyFilter();
+  </script>
+</body>
+</html>

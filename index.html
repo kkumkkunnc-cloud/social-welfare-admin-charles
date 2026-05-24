@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사회복지행정론 기말고사 대비</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" type="button" aria-label="다크모드 전환">🌙</button>
+  <main class="site-shell">
+    <section class="hero" aria-labelledby="site-title">
+      <div class="hero__copy">
+        <p class="eyebrow">Final Exam Study Hub</p>
+        <h1 id="site-title">사회복지행정론 기말고사 대비</h1>
+      </div>
+      <section class="progress-panel" aria-labelledby="progress-title">
+        <div class="progress-panel__header">
+          <span id="progress-title">학습 진도</span>
+          <strong><span id="solved-count">0</span> / <span id="total-count">100</span></strong>
+        </div>
+        <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
+        <p id="progress-message">아직 풀이 기록이 없습니다.</p>
+      </section>
+    </section>
+    <nav class="study-cards" aria-label="학습 메뉴">
+      <a class="study-card" href="quiz.html">
+        <span class="study-card__icon" aria-hidden="true">📝</span>
+        <span class="study-card__body"><strong>문제풀이</strong><span>기본문제와 교재 연습문제로 사회복지행정론 핵심 내용을 점검합니다.</span></span>
+      </a>
+      <a class="study-card" href="concepts.html">
+        <span class="study-card__icon" aria-hidden="true">📚</span>
+        <span class="study-card__body"><strong>개념정리</strong><span>1강부터 15강까지 빠르게 복습합니다.</span></span>
+      </a>
+    </nav>
+  </main>
+  <script src="data.js"></script>
+  <script>
+    function applyTheme() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.dataset.theme = theme;
+      document.getElementById('theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', next);
+      applyTheme();
+    });
+    applyTheme();
+
+    const total = questions.length;
+    const progress = JSON.parse(localStorage.getItem('quizProgress') || '{"solvedQuestions":[]}');
+    const solved = Math.min(total, Array.isArray(progress.solvedQuestions) ? progress.solvedQuestions.length : 0);
+    const percent = Math.round((solved / total) * 100);
+    document.getElementById('solved-count').textContent = String(solved);
+    document.getElementById('total-count').textContent = String(total);
+    document.getElementById('progress-fill').style.width = percent + '%';
+    document.getElementById('progress-message').textContent = solved > 0 ? `총 ${total}문제 중 ${solved}문제를 풀었습니다.` : '아직 풀이 기록이 없습니다.';
+  </script>
+</body>
+</html>

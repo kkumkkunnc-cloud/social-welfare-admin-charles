@@ -1,0 +1,52 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>개념정리 | 사회복지행정론 기말고사 대비</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" type="button" aria-label="다크모드 전환">🌙</button>
+  <main class="site-shell concepts-shell">
+    <header class="quiz-topbar">
+      <a class="back-link" href="index.html">← 홈</a>
+      <div><p class="eyebrow">Concept Review</p><h1>개념정리</h1></div>
+    </header>
+    <div class="concept-layout">
+      <aside class="lecture-sidebar" aria-label="강의 목록"><div class="sidebar-title">강의 목록</div><nav id="lecture-menu" class="lecture-menu"></nav></aside>
+      <section class="concept-main" id="concept-main" aria-live="polite"><div class="concept-empty">강의 내용을 불러오는 중입니다.</div></section>
+    </div>
+  </main>
+  <script src="data.js"></script>
+  <script>
+    function applyTheme() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.dataset.theme = theme;
+      document.getElementById('theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+    document.getElementById('theme-toggle').addEventListener('click', () => { localStorage.setItem('theme', document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'); applyTheme(); });
+    applyTheme();
+
+    const menu = document.getElementById('lecture-menu');
+    const main = document.getElementById('concept-main');
+    let selectedLectureId = Number(new URLSearchParams(location.search).get('lecture')) || 1;
+    function escapeHtml(value) { return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
+    function makeTextCard(text) {
+      const [term, ...rest] = String(text).split(':');
+      const definition = rest.join(':').trim();
+      return `<article class="concept-card"><h3>${escapeHtml(term.trim())}</h3><p>${escapeHtml(definition || text)}</p></article>`;
+    }
+    function renderMenu() {
+      menu.innerHTML = lectures.map(lecture => `<button class="lecture-menu__button ${lecture.id === selectedLectureId ? 'is-active' : ''}" type="button" data-lecture-id="${lecture.id}"><span>${lecture.id}강</span><strong>${escapeHtml(lecture.title)}</strong></button>`).join('');
+      menu.querySelectorAll('button').forEach(button => button.addEventListener('click', () => { selectedLectureId = Number(button.dataset.lectureId); render(); }));
+    }
+    function renderLecture() {
+      const lecture = lectures.find(item => item.id === selectedLectureId) || lectures[0];
+      main.innerHTML = `<article class="lecture-detail"><header class="lecture-hero"><div><p class="eyebrow">${lecture.id}강</p><h2>📘 ${escapeHtml(lecture.title)}</h2></div><a class="control-button control-button--primary solve-link" href="quiz.html?lecture=${lecture.id}">이 강의 문제 풀기</a></header><section class="concept-section"><h3>🏷️ 핵심 키워드</h3><div class="keyword-tags">${lecture.keywords.map(keyword => `<span>${escapeHtml(keyword)}</span>`).join('')}</div></section><section class="concept-section"><h3>📖 핵심 개념</h3><div class="concept-card-grid">${lecture.concepts.map(makeTextCard).join('')}</div></section><section class="exam-point-box"><h3>⭐ 시험 포인트</h3><ul>${lecture.examPoints.map(point => `<li>${escapeHtml(point)}</li>`).join('')}</ul></section><section class="summary-box"><h3>📝 핵심 요약</h3><p>${escapeHtml(lecture.summary)}</p></section></article>`;
+    }
+    function render() { renderMenu(); renderLecture(); }
+    render();
+  </script>
+</body>
+</html>
